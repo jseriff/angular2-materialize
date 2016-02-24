@@ -1,4 +1,5 @@
-import {Directive, ElementRef, Input, AfterViewInit} from 'angular2/core';
+import {Directive, ElementRef, Input, AfterViewInit, OnDestroy, Host, Optional} from 'angular2/core';
+import {NgModel} from 'angular2/common';
 
 declare var $:any;
 declare var Materialize:any;
@@ -16,15 +17,16 @@ declare var Materialize:any;
   // "leanModal";
 
 @Directive({
-    selector: '[materialize]'
+    selector: '[materialize]',
 })
-export class MaterializeDirective implements AfterViewInit {
+export class MaterializeDirective implements AfterViewInit, OnDestroy {
 
     private _params:[any] = null;
     private _functionName:string = null;
 
-    constructor(private _el: ElementRef) {
-    }
+    constructor(
+      private _el: ElementRef,
+      @Optional() @Host() private _ngModel: NgModel) {}
 
     @Input() set materializeParams(params:any){
       this._params = params;
@@ -36,6 +38,10 @@ export class MaterializeDirective implements AfterViewInit {
 
     ngAfterViewInit() {
       this.performElementUpdates();
+    }
+
+    ngOnDestroy() {
+      $(this._el.nativeElement).off('change');
     }
 
     performElementUpdates() {
@@ -55,6 +61,12 @@ export class MaterializeDirective implements AfterViewInit {
           } else {
             jQueryElement[this._functionName]();
           }
+
+          if (this._ngModel && this._functionName == 'material_select') {
+            jQueryElement.on('change', (evt) => {
+              this._ngModel.update.next(evt.target.value);
+            });
+          }
         } else {
           // fallback to running this function on the global Materialize object
           if (Materialize[this._functionName]) {
@@ -65,5 +77,4 @@ export class MaterializeDirective implements AfterViewInit {
         }
       }
     }
-
 }
